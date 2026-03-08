@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+
+  # ── Base de datos ─────────────────────────────────────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-CU21-ubuntu-20.04
+    ports:
+      - "7983:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - MSSQL_PID=Express
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - timelapse-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'SELECT 1' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ── Backend .NET 8 ────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./TimelapseAPI
+      dockerfile: Dockerfile
+    ports:
+      - "3897:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__TimelapseDB=Server=sqlserver;Database=TimelapseDB;User Id=sa;Password=yourStrong(!)Password;TrustServerCertificate=True;
+      - CloudinarySettings__CloudName=dg5m7m0pe
+      - CloudinarySettings__ApiKey=857249658238138
+      - CloudinarySettings__ApiSecret=CVxmp9QFgT8IrA72MIoP5zvRHnc
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - timelapse-net
+    restart: unless-stopped
+
+# ── Red y volúmenes ───────────────────────────────────────────────────────────
+networks:
+  timelapse-net:
+    name: timelapse-net
+
+volumes:
+  sqlserver_data:
