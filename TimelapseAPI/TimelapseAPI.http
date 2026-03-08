@@ -1,0 +1,6 @@
+@TimelapseAPI_HostAddress = http://localhost:5167
+
+GET {{TimelapseAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
