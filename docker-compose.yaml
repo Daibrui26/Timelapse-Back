@@ -23,6 +23,23 @@ services:
       retries: 10
       start_period: 30s
 
+  # ── Init: crea tablas y carga datos ──────────────────────────────────────────
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2019-CU21-ubuntu-20.04
+    container_name: db_init
+    environment:
+      - ACCEPT_EULA=Y
+    networks:
+      - timelapse-net
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    command: ["/bin/bash", "-c", "cp /mnt/createDbSqlServer.sql /var/opt/mssql/init.sql && chmod 777 /var/opt/mssql/init.sql && /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'yourStrong(!)Password' -i /var/opt/mssql/init.sql && echo 'BD inicializada correctamente.'"]
+    volumes:
+      - ./TimelapseAPI/createDbSqlServer.sql:/mnt/createDbSqlServer.sql:ro
+      - sqlserver_data:/var/opt/mssql
+    restart: "no"
+
   # ── Backend .NET 8 ────────────────────────────────────────────────────────────
   api:
     build:
